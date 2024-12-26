@@ -1,0 +1,254 @@
+!pip install openai==0.28
+import openai
+import os
+from datetime import datetime
+openai.api_key = "YOUR_API_KEY"
+if openai.api_key:
+    print("API Key successfully loaded!")
+else:
+    print("API Key not loaded. Check your input.")
+def collect_patient_data():
+    """
+    Collect patient vitals and medical history interactively from the user.
+    """
+    print("\nPlease provide the following patient details.\n")
+
+    # Collect vitals
+    patient_data = {
+        "blood_pressure": input("Blood Pressure (e.g., 120/80 mmHg): "),
+        "heart_rate": input("Heart Rate (e.g., 75 bpm): "),
+        "respiratory_rate": input("Respiratory Rate (e.g., 18 breaths/min): "),
+        "temperature": input("Body Temperature (e.g., 98.6 °F): "),
+        "oxygen_saturation": input("Oxygen Saturation (e.g., 97%): "),
+        # Collect medical history
+        "lab_test": input("Lab Test Conducted (e.g., Blood Sugar): "),
+        "lab_result": input("Lab Test Result (e.g., High, Normal): "),
+        "diagnosis": input("Existing Diagnosis (e.g., Type 2 Diabetes): "),
+        "allergies": input("Known Allergies (e.g., Penicillin): "),
+        "surgeries": input("Past Surgeries (e.g., Appendectomy): "),
+        "treatment_date": input("Treatment Date (e.g., 2024-06-10): "),
+    }
+
+    return patient_data
+
+
+# def collect_patient_data():
+#     """
+#     Collect patient vitals and medical history interactively from the user.
+#     """
+#     print("\nPlease provide the following patient details.\n")
+
+#     # Collect vitals
+#     blood_pressure = input("Blood Pressure (e.g., 120/80 mmHg): ")
+#     heart_rate = input("Heart Rate (e.g., 75 bpm): ")
+#     respiratory_rate = input("Respiratory Rate (e.g., 18 breaths/min): ")
+#     temperature = input("Body Temperature (e.g., 98.6 °F): ")
+#     oxygen_saturation = input("Oxygen Saturation (e.g., 97%): ")
+
+#     # Collect medical history
+#     lab_test = input("Lab Test Conducted (e.g., Blood Sugar): ")
+#     lab_result = input("Lab Test Result (e.g., High, Normal): ")
+#     diagnosis = input("Existing Diagnosis (e.g., Type 2 Diabetes): ")
+#     allergies = input("Known Allergies (e.g., Penicillin): ")
+#     surgeries = input("Past Surgeries (e.g., Appendectomy): ")
+#     treatment_date = input("Treatment Date (e.g., 2024-06-10): ")
+
+#     # Combine into a dictionary
+#     patient_data = {
+#         "blood_pressure": blood_pressure,
+#         "heart_rate": heart_rate,
+#         "respiratory_rate": respiratory_rate,
+#         "temperature": temperature,
+#         "oxygen_saturation": oxygen_saturation,
+#         "lab_test": lab_test,
+#         "lab_result": lab_result,
+#         "diagnosis": diagnosis,
+#         "allergies": allergies,
+#         "surgeries": surgeries,
+#         "treatment_date": treatment_date,
+#     }
+
+#     return patient_data
+def construct_prompt(patient_data):
+    """
+    Construct a detailed and structured GPT prompt using the patient's data.
+    """
+    prompt = f"""
+    You are a highly experienced medical assistant tasked with generating a treatment plan.
+    Use the following patient vitals and medical history to create a detailed diagnosis, treatment plan,
+    lifestyle recommendations, and highlight any risks or alerts.
+
+    ### Patient Vitals:
+    - Blood Pressure: {patient_data['blood_pressure']}
+    - Heart Rate: {patient_data['heart_rate']}
+    - Respiratory Rate: {patient_data['respiratory_rate']}
+    - Temperature: {patient_data['temperature']}
+    - Oxygen Saturation: {patient_data['oxygen_saturation']}
+
+    ### Patient Medical History:
+    - Lab Test: {patient_data['lab_test']}
+    - Lab Result: {patient_data['lab_result']}
+    - Diagnosis: {patient_data['diagnosis']}
+    - Known Allergies: {patient_data['allergies']}
+    - Past Surgeries: {patient_data['surgeries']}
+    - Treatment Date: {patient_data['treatment_date']}
+
+    ### Output Format:
+    **Diagnosis**:
+    [Provide a diagnosis based on the patient's vitals and medical history.]
+
+    **Treatment Plan**:
+    - Medication 1: [Name, Dosage, Frequency]
+    - Medication 2: [Name, Dosage, Frequency]
+    - Medication 2: [Name, Dosage, Frequency]
+
+    **Lifestyle Recommendations**:
+    [Provide dietary and exercise suggestions to support the patient's recovery.]
+
+    **Doctor Visiting Recommendations**:
+    [Provide visit to doctor suggestions including how many times and also change the medications according to the visits to support the patient's recovery.]
+
+    **Alerts and Risks**:
+    [Highlight contraindications, risks, or potential concerns based on allergies and medical history.]
+    """
+    return prompt
+def save_treatment_plan(patient_data, treatment_plan):
+    """
+    Save the generated treatment plan to a file.
+    """
+    # Create a results directory if it doesn't exist
+    results_dir = "treatment_plans"
+    os.makedirs(results_dir, exist_ok=True)
+
+    # Generate a filename using the current timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{results_dir}/treatment_plan_{timestamp}.txt"
+
+    # Write patient data and treatment plan to the file
+    with open(filename, "w") as file:
+        file.write("=== Patient Vitals and Medical History ===\n")
+        for key, value in patient_data.items():
+            file.write(f"{key.replace('_', ' ').title()}: {value}\n")
+
+        file.write("\n=== Generated Treatment Plan ===\n")
+        file.write(treatment_plan)
+
+    print(f"\nTreatment plan saved successfully to {filename}.")
+import openai
+import os
+from datetime import datetime
+
+# ... (other function definitions: collect_patient_data, construct_prompt, save_treatment_plan) ...
+
+
+def query_gpt(prompt):
+    """
+    Query OpenAI's GPT model using the constructed prompt.
+    """
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4o",  # Use gpt-3.5-turbo if GPT-4 is not available
+            messages=[
+                {"role": "system", "content": "You are a medical assistant providing detailed treatment plans."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=1000,
+            temperature=0.7
+        )
+        return response['choices'][0]['message']['content'].strip()
+    except Exception as e:
+        return f"Error querying OpenAI GPT: {str(e)}"
+
+
+def run_medical_chatbot():
+    """
+    Run the chatbot to collect patient data and generate a treatment plan.
+    """
+    print("Welcome to the Medical Treatment Plan Generator!")
+    print("This tool generates a treatment plan based on patient vitals and medical history.\n")
+
+    # Collect patient data
+    patient_data = collect_patient_data()
+
+    # Construct the GPT prompt
+    print("\nGenerating treatment plan...")
+    prompt = construct_prompt(patient_data)
+
+    # Query GPT
+    treatment_plan = query_gpt(prompt)  # Calling the query_gpt function
+
+    # Display the result
+    print("\n===== Generated Patient Treatment Plan =====\n")
+    print(treatment_plan)
+    print("\n============================================")
+    save_treatment_plan(patient_data, treatment_plan)
+
+
+if __name__ == "__main__":
+    run_medical_chatbot()
+# def save_treatment_plan(patient_data, treatment_plan):
+#     """
+#     Save the generated treatment plan to a file.
+#     """
+#     # Create a results directory if it doesn't exist
+#     results_dir = "treatment_plans"
+#     os.makedirs(results_dir, exist_ok=True)
+
+#     # Generate a filename using the current timestamp
+#     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+#     filename = f"{results_dir}/treatment_plan_{timestamp}.txt"
+
+#     # Write patient data and treatment plan to the file
+#     with open(filename, "w") as file:
+#         file.write("=== Patient Vitals and Medical History ===\n")
+#         for key, value in patient_data.items():
+#             file.write(f"{key.replace('_', ' ').title()}: {value}\n")
+
+#         file.write("\n=== Generated Treatment Plan ===\n")
+#         file.write(treatment_plan)
+
+#     print(f"\nTreatment plan saved successfully to {filename}.")
+# def run_medical_chatbot():
+#     """
+#     Run the chatbot to collect patient data and generate a treatment plan.
+#     """
+#     print("Welcome to the Medical Treatment Plan Generator!")
+#     print("This tool generates a treatment plan based on patient vitals and medical history.\n")
+
+#     # Collect patient data
+#     patient_data = collect_patient_data()
+
+#     # Construct the GPT prompt
+#     print("\nGenerating treatment plan...")
+#     prompt = construct_prompt(patient_data)
+
+#     # Query GPT
+#     treatment_plan = query_gpt(prompt)
+
+#     # Display the result
+#     print("\n===== Generated Patient Treatment Plan =====\n")
+#     print(treatment_plan)
+#     print("\n============================================")
+#     save_treatment_plan(patient_data, treatment_plan)
+# def save_treatment_plan(patient_data, treatment_plan):
+#     """
+#     Save the generated treatment plan to a file.
+#     """
+#     # Create a results directory if it doesn't exist
+#     results_dir = "treatment_plans"
+#     os.makedirs(results_dir, exist_ok=True)
+
+#     # Generate a filename using the current timestamp
+#     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+#     filename = f"{results_dir}/treatment_plan_{timestamp}.txt"
+
+#     # Write patient data and treatment plan to the file
+#     with open(filename, "w") as file:
+#         file.write("=== Patient Vitals and Medical History ===\n")
+#         for key, value in patient_data.items():
+#             file.write(f"{key.replace('_', ' ').title()}: {value}\n")
+
+#         file.write("\n=== Generated Treatment Plan ===\n")
+#         file.write(treatment_plan)
+
+#     print(f"\nTreatment plan saved successfully to {filename}.")
